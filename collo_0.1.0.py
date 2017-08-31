@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# Auteur/Author : Marc Schaul
+# Ce programme est sous licence GNU GPL v3.
+
+# This program is free software: you can redistribute it and/or modify  
+# it under the terms of the GNU General Public License as published by  
+# the Free Software Foundation, version 3.
+
+# Git repository:     https://github.com/marcotux/colloscope
+
 '''
 Programme génétique pour définir un colloscope.
 J'ai découvert la couche objet de python avec ce programme et l'ai écrit comme une preuve de concept au fur et à mesure de mes élucubrations.
