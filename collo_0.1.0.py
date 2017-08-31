@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
 
 '''
-Documentation, License etc.
-
-@package collo_v7
+Programme génétique pour définir un colloscope.
+J'ai découvert la couche objet de python avec ce programme et l'ai écrit comme une preuve de concept au fur et à mesure de mes élucubrations.
+Il est donc difficile à lire et mériterait maintenant une ré-écriture complète surtout pour quelqu'un qui a plus de recul sur les classes
+Ceci dit il semble bien fonctionner chez moi.
+Il est formé d'un seul script pour des raisons de simplification de diffusion et d'usage.
+Le colloscope affiche à chaque génération une ligne avec les erreurs cummulées des 4 meilleurs colloscope."
 '''
 
-from itertools import *
-import copy
-import random
-############ variables globales de définition collocope ###########################
-#lm : laliste des matières
+#####################################################################################
+# VARIABLES A DEFINIR
+# variables globales de définition collocope 
+# Ces variables doivent correspondre au colloscope à définir et doivent donc être renseignées
+# je les ai mises en tête de script pour qu'il n'y ait rien à modifier ensuite (sauf pour les plus aventureux)
+#####################################################################################
+
+#Le nombre de générations à produire 100 est rapide (mais certainement insuffisant). On peut aller à 1000 ou plus. Ce n'est pas parce que la génération semble se stabiliser qu'elle ne peut plus s'améliorer.
+nbgen=100
+
+#lm : la liste des matières
 lm=["maths","phys","LVG1","LVG2","info"]
 
 #nbl : le nombre de lignes = normalement le nombre de groupes sinon ça risque de donner n'importe quoi
 nbl=14
 
-"""matp : la liste des matières (celles de lm) avec leur TYPE et les PLAGES  horaires utilisées
+#variable matp
+'''matp : la liste des matières (celles de lm) avec leur TYPE et les PLAGES  horaires utilisées
 Une plage horaire est formée d'un élément de j concaténé à un élément de h avec
 j=["lu","ma","me","je","ve","sa"]
 h=['8','9','10','11','12','13','14','15','16','17','18','19','20']
@@ -26,9 +36,9 @@ ATTENTION à définir le type t associé
 	t:type de matière
 		0 si il y a une colle toutes les semaines dans cette matière
 		1 si colle toutes les deux semaines
-		2 si c'est une liste de groupe avec colle toutes les semaines
-		3 si c'est une liste de groupe avec colle toutes les semaines
-		4 si c'est une liste de groupe avec colle une semaine sur 2 qui a une plage de deux heures --> info"""
+		2 si c'est une liste de groupe avec une colle toutes les semaines (non implémenté)
+		3 si c'est une liste de groupe avec une colle toutes les semaines (non implémenté)
+		4 si c'est une liste de groupe avec une colle une semaine sur 2 qui a une plage de deux heures --> info'''
 #exemple pour une MPSI		
 matp=[
 ["maths",0,['me16','ma15','ma12','me11','lu18','me18','lu18','ma17','me17','lu18','me12','ma12','me19','lu19']],
@@ -40,13 +50,13 @@ matp=[
 ]
 
 #noperm : pas de permutation : si une matière doit conserver les permutations du colloscope initial. Il n'y aura aucun changement dans les groupes pour ces matières par rapport au colloscope initial.
-#pour l'instant non implementés
+#pour l'instant non implementé
 noperm=[]
 
 #Les couples de matières pour lesquelles aucune vérification ne sera faite car les choix initiaux pour les groupes garantissent qu'il n'y aura pas de collisions dans ces matières (par exemple par des bons choix de parité des numéros de groupes dans le colloscope).
 lib=[("phys","LVG1"),("phys","LVG2"),("info1","info2"),("info1","info3"),(("info2","info3"))]
 
-########### passons au groupes
+########### passons aux groupes
 #la liste des groupes
 liste_groupe=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14]
 # la première ligne du colloscope
@@ -66,9 +76,10 @@ ligne2=[
 ["info", [[4, 5, 6, 7, 8],[10, 11, 12, 13]]]
 ]
 
-######### les contraintes supplémentaires (autre que les collision inter-matières)
-#cofo_p : contrainte forte par plage : plage dont les groupes explicités doivent être absent
+######### les contraintes supplémentaires (autre que les collisions inter-matières) qui seront calculées par le programme.
+#attention toutes ne sont peut être pas encore implémentées
 
+#cofo_p : contrainte forte par plage : plage dont les groupes explicités doivent être absent
 cofo_p=[
 ['me11',[1,2,3,4,5]],
 ['me12',[1,2,3,4,5]],
@@ -83,7 +94,8 @@ cofa_c=[
 ['maths',12 ,[4,5,12,13,14]],
 ['maths',13 ,[4,5,12,13,14]],
 ]
-# plus généralement la liste des contraintes supplémentaire que l'on peu définir est 
+
+# plus généralement la liste des contraintes supplémentaires que l'on peut définir est 
 #cofo_p=[] #liste des contraintes fortes définies par l'utilisateur pour une plage horaire
 cofa_p=[] #liste des contraintes faibles définies par l'utilisateur pour une plage horaire
 soufo_p=[] #liste des souhaits forts définis par l'utilisateur pour une plage horaire
@@ -98,6 +110,7 @@ soufa_c=[] #liste des souhaits faibles définis par l'utilisateur pour une colon
 
 
 #### contrainte sur groupes fantômes pas encore implementées
+
 #### plages horaire à éviter pour des groupes fantômes [liste de plages]
 cofo_p_f=[] 
 cofa_p_f=[] 
@@ -109,6 +122,16 @@ cofa_c_f=[] #contraintes faibles définies par l'utilisateur pour une colonne
 soufo_c_f=[] #souhaits forts définis par l'utilisateur pour une colonne
 soufa_c_f=[] #souhaits faibles définis par l'utilisateur pour une colonne
 
+
+############# FIN DES VARIABLES A DEFINIR ####################################################
+
+
+#################################################################################################
+#Le programme de colloscope en version ?ALPHA ?BETA
+#################################################################################################
+from itertools import *
+import copy
+import random
 
 class Mbase():
 	'''quelques méthodes de bases utiles'''
@@ -136,7 +159,7 @@ class Mbase():
 		return(liste)	
 
 class MC(type):
-	'''Une méta classe pour pouvoir mettre les variables globales comme variable de classe de la classe Ini'''
+	'''Une méta classe pour pouvoir mettre les variables globales données par l'utilisateur comme variables de la classe Ini'''
 	def __init__(cls, name, bases, dict):
 		super(MC, cls).__init__(name, bases, dict)
 
@@ -168,7 +191,7 @@ class Ini(metaclass=MC):
 		if self.nbl<=0 and self.matp[0]!=0:
 			self.nbl=max([len(elt[2]) for elt in self.matp])
 		Ini.nbl=self.nbl	
-		#soustraire 1 à tous les numéro de groupes
+		#soustraire 1 à tous les numéros de groupes
 		
 	@classmethod
 	def plage_mat(cls,matiere):#retourne la liste des plages correspondant à une matière
@@ -205,7 +228,7 @@ class Ini(metaclass=MC):
 		pass	
 
 class Coef():
-	'''les coefficient de contraintes pours les calculs'''
+	'''les coefficients de contraintes pour les calculs'''
 	fo=500 #coeff fort
 	fa=100 #coeff faible 
 	fo_f=200
@@ -309,7 +332,12 @@ class Collo():
 		self.affiche()
 		print("\n#######################\nLe colloscope en csv :\n")
 		print(self.csv())
-		print("\n#######################\nDictionnaire des erreurs :\n")
+		print("\n#######################\nDictionnaire des erreurs :")
+		print("Le dictionnaire des erreurs affiche les cases du colloscope qui contiennent des erreurs.")
+		print("Les cases sont triées de la plus grosse erreur à la plus petite.")
+		print("Une case à la forme (ligne,matière,colonne dans la matière).")
+		print("Les numéros de lignes sont au sens de python (première ligne : Num=0). Il faut donc rajouter 1, de même pour le numéro de matière et de colonne dans la matière.")
+		print("Si il reste des cases de valeur supérieure à ",Coef.fo,",il se peut que le colloscope ne soit pas valide, mais cela peut aussi venir de multiples contraintes additionnées et il est difficile de faire mieux !\n")
 		print(self.tri())
 		
 
@@ -329,7 +357,7 @@ class Collo_init(Collo):
 			exit()
 		for l in Ini.ligne1+Ini.ligne2:
 			if Ini.type_mat(l[0])!=4: #type de matière normal
-				nblf=(len(Ini.plage_mat(l[0]))-len(l[1])) #nbr de fantomes nécessaire
+				nblf=(len(Ini.plage_mat(l[0]))-len(l[1])) #nbr de fantomes nécessaires
 				if nblf>0:
 					lfanto=[maxifanto+i+1 for i in range(nblf)] #liste des fantômes à rajouter
 					l[1]=l[1]+lfanto
@@ -337,7 +365,7 @@ class Collo_init(Collo):
 					fanto=fanto+lfanto
 					#print("maxifanto",maxifanto)
 			if Ini.type_mat(l[0])==4: #type à plage de deux heures on rajoute deux fois le groupe
-				nblf=len(Ini.plage_mat(l[0]))-len(l[1]) #nbr de fantomes nécessaire
+				nblf=len(Ini.plage_mat(l[0]))-len(l[1]) #nbr de fantomes nécessaires
 				#print("plage",Ini.plage_mat(l[0]),"len(l[1])",len(l[1]))
 				if nblf>0:
 					lfanto=[[maxifanto+i+1] for i in range(nblf)] #liste des fantomes à rajouter
@@ -391,7 +419,10 @@ class Collo_init(Collo):
 			ligne_suite()
 		Collo_init.C=C #tableau du colloscope initial conservé comme variable de classe
 		self.c=C
+		print("\nColloscope de départ à optimiser :\n")
 		self.affiche()
+		print("\nLe même en csv : \n")
+		print(self.csv())
 		return(self)
 	
 	def creation_d(self):
@@ -432,10 +463,10 @@ class Cons():
 			if {elt[0][1],elt[1][1]} not in [set(c) for c in Ini.lib]:
 				lverif.append(elt)
 		#reste à comparer les plages pour chaque matière dans lverif, avec la subtilité des plages de type info (plage = liste de deux heures)
-		print("lverif\n",lverif)
+		#print("lverif\n",lverif)
 		coeff=Coef.fo #coefficient fort
 		#et on ne va pas optimiser ici avec les intersections ça n'est fait q'une fois et c'est pas gros!
-		L=[] #les intersection sur la ligne
+		L=[] #les intersections sur la ligne
 		for co_ind_mat in lverif: #couple indice matière
 			mat1,mat2=co_ind_mat[0][1],co_ind_mat[1][1]
 			#print("mat1mat2",mat1,mat2)
@@ -470,17 +501,17 @@ class Cons():
 			#print(L)
 			#print(list(product(list(range(Ini.nbl)),L)))
 		lcomplete=[((nl,num1,ind1),(nl,num2,ind2)) for (nl,((num1,ind1),(num2,ind2))) in product(list(range(Ini.nbl)),L)]
-		print(L)
+		#print(L)
 		#print(lcomplete)
 		for elt in lcomplete:
 			self.DC1[elt]=coeff
 		#print(ltriple)
 		#print(len(ltriple))
 		#print(len(set(ltriple)))#pas de redondance
-		print("DC1",len(self.DC1),"\n",self.DC1)
+		#print("DC1",len(self.DC1),"\n",self.DC1)
 		
 	def contrainte_plage(self):
-		'''Calcul de la liste de contraintespour des groupes à exclure ou à souhaiter sur une plage horaire et insertion dans DC2'''
+		'''Calcul de la liste de contraintes pour des groupes à exclure ou à souhaiter sur une plage horaire et insertion dans DC2'''
 		lc=[Ini.cofo_p,Ini.cofa_p,Ini.soufo_p,Ini.soufa_p,Ini.cofo_p_f,Ini.cofa_p_f,Ini.soufo_p_f,Ini.soufa_p_f]
 		#liste des coeffs correspondants
 		lcoef=[Coef.cofo_p,Coef.cofa_p,Coef.soufo_p,Coef.soufa_p,Coef.cofo_p_f,Coef.cofa_p_f,Coef.soufo_p_f,Coef.soufa_p_f]
@@ -500,15 +531,15 @@ class Cons():
 					#liste_index = liste des index concernés par une plage pour une matière
 					liste_index=[i for (i,m) in lip if m==plage] 
 					if liste_index!=[]:
-						print("liste_index",liste_index)
+						#print("liste_index",liste_index)
 						lnbl=list(range(Ini.nbl)) #liste des lignes
 						triple=list(product(lnbl,[num_mat],liste_index)) #les triplets à contrainte 
 						self.DC2=self.DC2+[(tri,lgroupe,coeff) for tri in triple]
-		print("DC2_entreplage\n",self.DC2,len(self.DC2))
+		#print("DC2_entreplage\n",self.DC2,len(self.DC2))
 		
 	def contrainte_col(self):
 		'''Comme contrainte_plage mais cette fois-ci avec des contraintes sur des colonnes
-		On Ininue à insérer dans DC2'''
+		On continue à insérer dans DC2'''
 		lc=[Ini.cofo_c,Ini.cofa_c,Ini.soufo_c,Ini.soufa_c,Ini.cofo_c_f,Ini.cofa_c_f,Ini.soufo_c_f,Ini.soufa_c_f]
 		#liste des coeffs correspondants
 		lcoef=[Coef.cofo_c,Coef.cofa_c,Coef.soufo_c,Coef.soufa_c,Coef.cofo_c_f,Coef.cofa_c_f,Coef.soufo_c_f,Coef.soufa_c_f]
@@ -524,7 +555,7 @@ class Cons():
 				#print([(tri,lgroupe,coeff) for tri in triple])
 		#modification de la variable de classe			
 		Cons.DC2=self.DC2 #tordu mais initialise la variable de classe DC2!!!! 	
-		print("DC2_entre_plage_et_contrainte_col\n",self.DC2,len(self.DC2))
+		#print("DC2_entre_plage_et_contrainte_col\n",self.DC2,len(self.DC2))
 		
 	def contrainte(self):
 		'''calcul de toutes les contraintes'''
@@ -556,7 +587,7 @@ class Mutation(Collo):
 		'''On trie la liste des coefficients associés au colloscope par coefficients décroissants. On prend un certain nombre de valeurs aléatoires dans la première partie de cette liste puis on en extrait un petit nombre aléatoire qui correspond à des lignes toutes différentes, puis on transpose les cases correspondantes dans leur matière''' 
 		nb_modif=random.randint(0,7)
 		nb_max_coeff=10
-		subdi=2 #le nombre de subdivision : on prendra la première qui a les plus gros coeffs
+		subdi=2 #le nombre de subdivisions : on prendra la première qui a les plus gros coeffs
 		#Les plus gros coefficients dans l'ordre décroissants
 		L=sorted(self.d.items(), key=lambda t: t[1], reverse=True) #liste avec elt  ((1, 0, 3), 500)
 		#print("L",L[:30])
@@ -670,7 +701,7 @@ class DE(dict):
 	'''Dictionnaire des Erreurs:
 	une classe dictionnaire pour comptabiliser les erreurs dans une instance de colloscope
 	les éléments du dictionnaire sont de la forme ((numligne,groupe,num_groupe),coeff) avec coeff le coefficient d'erreur relatif à la case (numligne,groupe,num_groupe),coeff) du collomètre on y ajoute les méthodes de calculs
-	Finalement le dictionnaire sera initialiser avec l'objet colloscope. On ne garde que les méthodes de calcul'''
+	Finalement le dictionnaire sera initialisé avec l'objet colloscope. On ne garde que les méthodes de calcul'''
 	__slots__ = ()
 	
 	def ajout(self,coord,penal):
@@ -693,7 +724,7 @@ class DE(dict):
 
 
 	def calculDC1(self,col):
-		'''calcul des contraintes àpartir de DC1. col est la liste colloscope'''
+		'''calcul des contraintes à partir de DC1. col est la liste colloscope'''
 		dc1=Cons.DC1
 		#print("dc1",)
 		def egal(coord1,coord2): 
@@ -734,7 +765,7 @@ class DE(dict):
 		return(self)
 
 	def calculcol(self,C):
-		'''Calcul par colonne : ici C est la liste colloscope essayer d'avoir la meilleure répartition des groupes dans une colonne et éviter deux groupes qui deux fois de suite successivement = deux numéros qui se suivent
+		'''Calcul par colonne : ici C est la liste colloscope. On  essaye d'avoir la meilleure répartition des groupes dans une colonne et on évite deux groupes qui collent deux fois de suite successivement = deux numéros qui se suivent
 		Bien sûr on ne travaille pas sur des colonnes qui contiennent des groupes'''
 		lnmat=[nmat for (nmat,elt) in enumerate(Ini.matp) if elt[1] in [0,1]] #les matières concernées données par numéro
 		def coeff(case,casevois,col,fas):
@@ -756,7 +787,7 @@ class DE(dict):
 			fas=int((Ini.nbl/nb_gr_par_mat(nmat))+0.5) #fréquence d'apparition souhaitée pour un groupe
 			#on veut donc que la fréquence d'apparition soit fas ou fas+1
 			for ncol in range(len(C[0][nmat])):
-				col=[C[nl][nmat][ncol] for nl in range(Ini.nbl)] #colonne du collsocope à [nmat][ncol]
+				col=[C[nl][nmat][ncol] for nl in range(Ini.nbl)] #colonne du colloscope à [nmat][ncol]
 				#traitement de la première case
 				coef=coeff(col[0],col[1],col,fas)
 				coord=(0,nmat,ncol)
@@ -784,7 +815,7 @@ class Gene():
 		- croisements entre eux : 6
 		- 4 mutations chacun : 16
 		- croisements des 4 meilleurs avec 32 autres : 128
-		- 1 mutations des autres pris aléatoirement : 75
+		- 1 mutation des autres pris aléatoirement : 75
 		- encore des mutations du colloscope initial : 27
 		- on recommence un certain nombre de fois'''
 	nb_genera=500
@@ -846,7 +877,7 @@ class Gene():
 			#liste=[collo.d.jauge() for collo in L4+Lautr]
 			l4=[collo.d.jauge() for collo in L4]
 			#print("apresS4",len(NL),min(liste),"jauge",listenl)
-			print(len(NL),"jauge",l4)
+			print("Les 4 meilleurs de la novgen : ",l4)
 			
 		return(L4[0])		
 
@@ -861,7 +892,6 @@ Ci.creation()
 #print(Ci.c)
 #print(Ci.d)
 #print("dir(Ci)",dir(Ci))
-D=Ci.creation_c()
 #print(Ci.c)
 #Ci.affiche()
 cons=Cons()
@@ -886,5 +916,5 @@ ncollo.mutation_minus_gros()
 #print(ncollo.d.jauge())
 #ncollo.termine()
 gene=Gene()
-C=gene.evolution(Ci,1000)
+C=gene.evolution(Ci,nbgen)
 C.termine()
