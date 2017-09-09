@@ -26,7 +26,7 @@ Le colloscope affiche à chaque génération une ligne avec les erreurs cummulé
 #####################################################################################
 
 #Le nombre de générations à produire 100 est rapide (mais certainement insuffisant). On peut aller à 1000 ou plus. Ce n'est pas parce que la génération semble se stabiliser qu'elle ne peut plus s'améliorer.
-nbgen=100
+nbgen=1000
 
 #lm : la liste des matières
 lm=["maths","phys","LVG1","LVG2","info"]
@@ -50,20 +50,20 @@ ATTENTION à définir le type t associé
 		4 si c'est une liste de groupe avec une colle une semaine sur 2 qui a une plage de deux heures --> info'''
 #exemple pour une MPSI		
 matp=[
-["maths",0,['me16','ma15','ma12','me11','lu18','me18','lu18','ma17','me17','lu18','me12','ma12','me19','lu19']],
-["phys",1,['ma15','ma15','je10','me17','ma17','ve17','ma15']],
-["LVG1",1,['ma15','me16','me18','je18','me17']],
-["LVG2",1,['lu19','lu18','lu19']],
+["maths",0,['me16','ma15','ma12','me11','lu18','me18','je19','ma18','me17','lu18','me12','ma12','lu19','lu18']],
+["phys",1,['lu13','ma15','ma18','je18','ma15','je10','ve16']],
+["LVG1",1,['ma18','me16','me18','me18','me17','lu19']],
+["LVG2",1,['lu8','ma15']],
 #pour une matière de type 4 les plages de deux heures sont regroupées en liste
-["info",4,[['je10','je11'],['je10','je11'],['je10','je11']]],
+["info",4,[['je10','je11'],['je10','je11']]],
 ]
 
-#noperm : pas de permutation : si une matière doit conserver les permutations du colloscope initial. Il n'y aura aucun changement dans les groupes pour ces matières par rapport au colloscope initial.
-#pour l'instant non implementé
-noperm=[]
+#noperm : pas de permutation : si une matière doit conserver les permutations du colloscope initial. Il n'y aura aucun changement dans les groupes pour ces matières par rapport au colloscope initial. Pour l'instant on conserve les deux premières lignes de l'initialisation du colloscope et elles sont répétées ensuite sans modifications.
+
+noperm=["info"]
 
 #Les couples de matières pour lesquelles aucune vérification ne sera faite car les choix initiaux pour les groupes garantissent qu'il n'y aura pas de collisions dans ces matières (par exemple par des bons choix de parité des numéros de groupes dans le colloscope).
-lib=[("phys","LVG1"),("phys","LVG2"),("info1","info2"),("info1","info3"),(("info2","info3"))]
+lib=[("phys","LVG1"),("phys","LVG2")]
 
 ########### passons aux groupes
 #la liste des groupes
@@ -72,17 +72,17 @@ liste_groupe=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14]
 ligne1=[
 ["maths",[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14]],
 ["phys", [1, 3, 5, 7, 9, 11, 13]],
-["LVG1", [6,8,10,12,14]],
-["LVG2", [2,4]],
-["info", [[1, 2, 3, 9]]] #
+["LVG1", [4,6,8,10,12,14]],
+["LVG2", [2]],
+["info", [[1, 2, 3, 4, 5]]] #
 ]
 # la deuxième ligne du colloscope
 ligne2=[
 ["maths", [14,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]],
 ["phys",[2, 4, 6, 8, 10, 12, 14]],
-["LVG1", [7,9,11,13]],
-["LVG2",  [1,3,5]],
-["info", [[4, 5, 6, 7, 8],[10, 11, 12, 13]]]
+["LVG1", [5,7,9,11,13]],
+["LVG2",  [1,3]],
+["info", [[6, 7, 8,9],[10, 11, 12, 13,14]]]
 ]
 
 ######### les contraintes supplémentaires (autre que les collisions inter-matières) qui seront calculées par le programme.
@@ -90,8 +90,8 @@ ligne2=[
 
 #cofo_p : contrainte forte par plage : plage dont les groupes explicités doivent être absent
 cofo_p=[
-['me11',[1,2,3,4,5]],
-['me12',[1,2,3,4,5]],
+['me11',[1,2,3]],
+['me12',[1,2,3]],
 ]
 
 #cofo_c : contrainte forte par colonne un élément de cette liste est de la forme 
@@ -100,8 +100,8 @@ cofo_p=[
 
 #cofa_c : comme cofo_c mais c'est une contrainte faible, ce qui veut dire qu'on va simplement chercher à éviter ces groupes.
 cofa_c=[
-['maths',12 ,[4,5,12,13,14]],
-['maths',13 ,[4,5,12,13,14]],
+#['maths',12 ,[4,5,12,13,14]],
+#['maths',13 ,[4,5,12,13,14]],
 ]
 
 # plus généralement la liste des contraintes supplémentaires que l'on peut définir est 
@@ -181,25 +181,31 @@ class Ini(metaclass=MC):
 	par exemple lm se récupère avec Ini.lm etc...
 	Voir leur définition au début du programme.
 	'''
-			
+
 	@classmethod
 	def initpython(cls):
+
 		''' initialisation des variables sans numéro de groupes'''
 		for nom in ['lm','matp','nbl','noperm','lib']:
 			#on récupère les valeurs avec le dictionnaire des variables globales
 			setattr(MC, nom, globals()[nom])
 			#super(MC, cls).__init__(name, bases, dict)
+
+		Ini.lnoperm=[]	#liste des numéros de matières à ne pas permuter		
+		for matiere in noperm:
+			Ini.lnoperm.append(lm.index(matiere))
+
 		''' initialisation des variables avec des numéros de groupes : on retranche 1 au numéro'''			
 		for nom in ['liste_groupe','ligne1','ligne2','cofo_p','cofa_p','soufo_p','soufa_p','cofo_c','cofa_c','soufo_c','soufa_c','cofo_p_f','cofa_p_f','soufo_p_f','soufa_p_f','cofo_c_f','cofa_c_f','soufo_c_f','soufa_c_f']:
 			#on récupère les valeurs avec le dictionnaire des variables globales et on retranche 1 au numéro de groupes avec sub1
 			setattr(MC, nom, Mbase.sub1(globals()[nom]))
-			#super(MC, cls).__init__(name, bases, dict)	
+			#super(MC, cls).__init__(name, bases, dict)
 
 	def init(self):
 		#si non définie, le nombre de lignes = nombre maximal de plage horaire
 		if self.nbl<=0 and self.matp[0]!=0:
 			self.nbl=max([len(elt[2]) for elt in self.matp])
-		Ini.nbl=self.nbl	
+		Ini.nbl=self.nbl
 		#soustraire 1 à tous les numéros de groupes
 		
 	@classmethod
@@ -334,7 +340,18 @@ class Collo():
 			print(ligne)
 
 	def tri(self): #par coefficients décroissants
-		return(sorted(self.d.items(), key=lambda t: t[1], reverse=True))			
+		return(sorted(self.d.items(), key=lambda t: t[1], reverse=True))
+	
+	def dico_info(self):
+		'''Affichage du dictionnaire trié sous forme ligne/matière/colonne avec numéros de colloscope humains'''
+		dico=sorted(self.d.items(), key=lambda t: t[1], reverse=True)
+		texte="Affichage des erreurs triées de la plus forte à la plus faible sous la forme ligne, matière, colonne dans la matière, poids de l'erreur.\n"
+		for elt in dico:
+			ligne=elt[0][0]+1 #numéro de ligne
+			matiere=Ini.lm[elt[0][1]] #nom de la matière
+			col_in_mat=elt[0][2]+1 #numéro de colonne dans la matière
+			texte=texte+"ligne : "+str(ligne)+" | "+matiere+" | col : "+str(col_in_mat)+" | err : "+str(elt[1])+"\n"
+		return(texte)	
 
 	def termine(self):
 		print("\n#######################\nLe colloscope :\n")
@@ -348,6 +365,7 @@ class Collo():
 		print("Les numéros de lignes sont au sens de python (première ligne : Num=0). Il faut donc rajouter 1, de même pour le numéro de matière et de colonne dans la matière.")
 		print("Si il reste des cases de valeur supérieure à ",Coef.fo,",il se peut que le colloscope ne soit pas valide, mais cela peut aussi venir de multiples contraintes additionnées et il est difficile de faire mieux !\n")
 		print(self.tri())
+		print(self.dico_info())
 		
 
 class Collo_init(Collo):
@@ -411,17 +429,22 @@ class Collo_init(Collo):
 			#print("der_ligne",der_ligne)
 			ligne=[] #la ligne à créer
 			for (i,elt) in enumerate(Ini.matp):
+				def perm(x):
+					if i not in Ini.lnoperm: #on peut alors permuter
+						return(perm_circ_d(x))
+					else:
+						return(x)
 				if elt[1]==0: #colle toutes les semaines
-					ligne.append(perm_circ_d(der_ligne[i]))
+					ligne.append(perm(der_ligne[i]))
 				if elt[1]==1: #colle toutes les deux semaines 
 					#simple permutation circulaire 
-					ligne.append(perm_circ_d(ader_ligne[i]))
+					ligne.append(perm(ader_ligne[i]))
 				if elt[1]==2: #on conserve le groupe der_ligne
 					ligne.append(der_ligne[i])
 				if elt[1]==3: #on conserve le groupe ader__ligne
-					ligne.append(perm_circ_d(ader_ligne[i]))
+					ligne.append(perm(ader_ligne[i]))
 				if elt[1]==4: #on conserve le groupe ader__ligne
-					ligne.append(perm_circ_d(ader_ligne[i]))		
+					ligne.append(perm(ader_ligne[i]))
 			#print(ligne,"\n")		
 			C.append(ligne)		
 		for i in range(nbl-2):
@@ -586,37 +609,35 @@ class Mutation(Collo):
 		#print(len(self))
 		return([self.c[num][i][j] for num in range(len(self))])
 
-	def transpose(self,triple): #on transpose aléatoirement avec le triplet (ligne,groupe,case)
+	def transpose(self,triple): 
+		'''Les transpositions se font aléatoirement dans une ligne pour une même matière. On transpose aléatoirement avec le triplet (ligne,groupe,case)'''
 		(l,g,c)=triple
 		ind=random.randint(0,len(self.c[l][g])-1)
 		#print((l,g,c),(l,g,ind))
 		(self.c[l][g][ind],self.c[l][g][c])=(self.c[l][g][c],self.c[l][g][ind])
 	
-	def mutation_deb_ligne(self):
-		'''On trie la liste des coefficients associés au colloscope par coefficients décroissants. On prend un certain nombre de valeurs aléatoires dans la première partie de cette liste puis on en extrait un petit nombre aléatoire qui correspond à des lignes toutes différentes, puis on transpose les cases correspondantes dans leur matière''' 
-		nb_modif=random.randint(0,7)
+	def mutation_ligne(self,subdi=2):
+		'''On trie la liste des coefficients associés au colloscope par coefficients décroissants. On prend un certain nombre d'éléments aléatoires dans la première subdivision de cette liste ce qui donne des cases du colloscope à permuter.''' 
+		nb_modif=random.randint(1,3) #trop de mutations et ça dégènère !!!
 		nb_max_coeff=10
-		subdi=2 #le nombre de subdivisions : on prendra la première qui a les plus gros coeffs
-		#Les plus gros coefficients dans l'ordre décroissants
-		L=sorted(self.d.items(), key=lambda t: t[1], reverse=True) #liste avec elt  ((1, 0, 3), 500)
+		L=sorted(self.d.items(), key=lambda t: t[1], reverse=True)
 		#print("L",L[:30])
-		if len(L)<4:
+		if len(L)<2*subdi: #dur de faire mieux
 			self.termine(L)
-		i=random.randint(0,len(L)//subdi) #on prend un nombre dans les gros coeffs
-		ldic=[L[i][0]]  #on ajoute les coordonnées 
-		lnuml=[L[i][0][0]] #numéro de ligne correspondant
-		j=0
-		while len(ldic)<nb_modif and j<3*nb_modif:
-			i=random.randint(0,len(L)//subdi)
-			j+=1
-			numl=L[i][0][0]
-			#print(L[i][0])
-			if numl  not in lnuml:
+		ldic=[];#liste des cases à permuter
+		#lnuml=[];#numéro des lignes pourquoi ne pas permuter plusieurs fois dans une même ligne ?
+		modif=0
+		while modif<nb_modif:
+			i=random.randint(0,len(L)//subdi-1) #on prend un nombre dans les gros coeffs
+			#numl=L[i][0][0] #numéro de la ligne
+			nummat=L[i][0][1] #le numéro de la matière de la case à changer
+			#if nummat not in Ini.lnoperm and numl not in lnuml: #on peut permuter
+			if nummat not in Ini.lnoperm: #on peut permuter				
 				ldic.append(L[i][0])
-				lnuml.append(numl)
+				#lnuml.append(numl)
+				modif+=1
 		#maintenant la liste des cases à changer est dans ldic
 		#application des transpositions (aléatoires)
-		#print("ldic",ldic);
 		for triple in ldic:
 			self.transpose(triple)
 		#print("Lchang",Lchang)
@@ -624,42 +645,24 @@ class Mutation(Collo):
 		self.d=de.calcul(self)
 		return(self)		
 
-	def mutation_sur_ligne(self):
-		'''On prend les plus gros coeffs de lignes qui sont choisies au hasard et c'est eux qu'on bouge''' 
-		#print("entrée dans mutation",self.c,self.d)
-		#print("self.c",self.c)
+	def mutation_aleatoire(self):
+		'''On mute au hasard les bonnes comme les mauvaises cases'''
 		nb_modif=random.randint(1,5)
-		lnumli=[random.randint(0,len(self.c)) for i in range(nb_modif)] #on se force à toucher toutes les lignes
-		#mais toute distincte
-		#Classer par ordre de coeff croissant
-		L=sorted(self.d.items(), key=lambda t: t[1], reverse=True) #liste avec elt  ((1, 0, 3), 500)
-		print("L",L[:100])
-		#L[0][0] donne le numéro d'une ligne i et on veut que i parcourt lnumli
-		SL=[] #la liste des coordonnées faite à partir des éléments de L qu'on prend (au moins 1)
-		while len(lnumli)>0 and len(L)>0:
-			elt=L.pop(0) 
-			if elt[0][0] in lnumli: 
-				#print(lnumli,elt[0][0])
-				SL.append(elt[0]) #on le prend
-				lnumli.remove(elt[0][0])
-		print("SL",SL)
-		if len(L)==0:
-			print(L)
-			self.affiche()
-			print("terminé")
-			exit()
-		#print("ldic",ldic);
-		def transpose(triple): #on transpose aléatoirement avec le triplet (ligne,groupe,case)
-			(l,g,c)=triple
-			ind=random.randint(0,len(self.c[l][g])-1)
-			#print((l,g,c),(l,g,ind))
-			(self.c[l][g][ind],self.c[l][g][c])=(self.c[l][g][c],self.c[l][g][ind])
-		for triple in SL:
-			transpose(triple)
+		ldic=[]
+		modif=0
+		while modif<nb_modif:
+			ligne=random.randint(0,len(self.c)-1)
+			matiere=random.randint(0,len(self.c[ligne])-1)
+			if matiere not in Ini.lnoperm:
+				col=random.randint(0,len(self.c[ligne][matiere])-1)
+				ldic.append((ligne,matiere,col))
+				modif+=1				
+		for triple in ldic:
+			self.transpose(triple)
 		de=DE()
 		self.d=de.calcul(self)
 		return(self)
-
+	
 	def mutation_minus_gros(self):
 		'''On prend les plus gros coeffs de lignes qui sont choisies au hasard et c'est eux qu'on bouge''' 
 		#print("entrée dans mutation",self.c,self.d)
@@ -823,12 +826,23 @@ class Gene():
 		- on garde les 4 meilleurs :4
 		- croisements entre eux : 6
 		- 4 mutations chacun : 16
-		- croisements des 4 meilleurs avec 32 autres : 128
+		- croisements des 4 meilleurs avec 32 autres : 128 > utile ??
 		- 1 mutation des autres pris aléatoirement : 75
 		- encore des mutations du colloscope initial : 27
-		- on recommence un certain nombre de fois'''
+		- on recommence un certain nombre de fois
+		Ce serait bon de mettre des mouchards pour voir d'où viennent les améliorations'''
 	nb_genera=500
 	nb_select=200
+	def generationa(self,colo,nb=nb_genera):
+		'''renvoie une liste de nb_genera colloscopes mutés à partir de colo'''
+		LC=[]
+		if len(colo.d)==0:
+			colo.termine()
+		for i in range(nb):
+			ncollo=Mutation(colo)
+			LC.append(ncollo.mutation_aleatoire())
+		return(LC)
+	
 	def generation(self,colo,nb=nb_genera):
 		'''renvoie une liste de nb_genera colloscopes mutés à partir de colo'''
 		LC=[]
@@ -836,9 +850,9 @@ class Gene():
 			colo.termine()
 		for i in range(nb):
 			ncollo=Mutation(colo)
-			LC.append(ncollo.mutation_deb_ligne())
+			LC.append(ncollo.mutation_ligne())
 		return(LC)
-	
+
 	
 	def selection(self,LC,maxi=nb_select):
 		'''On prend les meilleurs d'une liste de colloscope
@@ -850,24 +864,27 @@ class Gene():
 		return(NL[0:maxi],NL[maxi:])
 	
 	def generation1(self,colo,n=4):	
-		'''Première génération'''
-		LC=self.generation(colo,n)
+		'''Première génération totalement aléatoire'''
+		LC=self.generationa(colo,n)
 		NLC=[]
 		for colo in LC:
-			NLC=NLC+self.generation(colo,n)
+			NLC=NLC+self.generationa(colo,n)
 		NNLC=[]
 		for colo in NLC:
-			NNLC=NNLC+self.generation(colo,n)
+			NNLC=NNLC+self.generationa(colo,n)
 		return(NNLC) #n=4 --> 64 colloscopes retournés	
 		
 	def evolution(self,colo,n):
+		'''des mutations ciblées, des mutations aléatoires, des croisements. Du chaos naissent des cathédrales ???'''
 		LC=self.generation1(colo,4) #on en récupère 256 : première génération
 		(L4,Lautr)=self.selection(LC,4) #les 4 meilleurs et les autres (triés)
 		for i in range(n):
 			NL=copy.deepcopy(L4) #les 4 meilleurs à garder
 			#mutation des 4 meilleurs
 			for col in L4:
-				NL=NL+self.generation(col,4)
+				NL=NL+self.generation(col,2)
+			for col in L4:
+				NL=NL+self.generationa(col,2)
 			#croisement des 4 meilleurs
 			for col1,col2 in combinations(L4,2):
 				NL=NL+[col1.croisement(col2)]
@@ -878,7 +895,7 @@ class Gene():
 				for col2 in Lautr[0:32]:
 					NL=NL+[col1.croisement(col2)]
 			for col in Lautr[32:107]:
-				NL=NL+self.generation(col,1)
+				NL=NL+self.generationa(col,1)
 			NL=NL+self.generation1(colo,3)
 			#listenl=[collo.d.jauge() for collo in NL]	
 			#print("listenl",len(NL),"jauge",listenl)
